@@ -1,0 +1,281 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------------
+   Harness-flavored design tokens: deep space background, electric blue/cyan
+   primary gradient, violet secondary accent.
+   ------------------------------------------------------------------------- */
+:root {
+  --background: #05060a;
+  --foreground: #e9edf6;
+
+  --hns-surface: #0c0e16;
+  --hns-surface-2: #121522;
+  --hns-border: #1e2334;
+  --hns-muted: #8b93aa;
+
+  --hns-blue: #2ca4ff;
+  --hns-cyan: #00e5d4;
+  --hns-violet: #8b5cf6;
+  --hns-pink: #ff5c93;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--hns-surface);
+  --color-surface-2: var(--hns-surface-2);
+  --color-line: var(--hns-border);
+  --color-muted: var(--hns-muted);
+  --color-blue: var(--hns-blue);
+  --color-cyan: var(--hns-cyan);
+  --color-violet: var(--hns-violet);
+  --color-pink: var(--hns-pink);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Ambient page furniture ---------------------------------------------------- */
+
+.hns-grid {
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: radial-gradient(ellipse 90% 60% at 50% 0%, #000 30%, transparent 75%);
+}
+
+.hns-glow {
+  background: radial-gradient(
+      ellipse 50% 45% at 20% 0%,
+      color-mix(in oklab, var(--hns-blue) 32%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 45% 40% at 80% 10%,
+      color-mix(in oklab, var(--hns-violet) 28%, transparent),
+      transparent 70%
+    );
+  filter: blur(20px);
+}
+
+.hns-gradient-text {
+  background: linear-gradient(100deg, var(--hns-blue), var(--hns-cyan) 55%, var(--hns-violet));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.hns-card {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.01));
+  border: 1px solid var(--hns-border);
+  backdrop-filter: blur(12px);
+}
+
+/* Reveal ------------------------------------------------------------------- */
+
+@keyframes hns-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hns-rise {
+  animation: hns-rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* --------------------------------------------------------------------------
+   Canary animation system. Every timing/amplitude below is driven by a CSS
+   variable that <Canary /> sets from the live vibe profile.
+   ------------------------------------------------------------------------ */
+
+@keyframes canary-bob {
+  0%,
+  100% {
+    transform: translateY(calc(var(--bob) * -1px)) rotate(calc(var(--lean) * -0.35deg));
+  }
+  50% {
+    transform: translateY(calc(var(--bob) * 1px)) rotate(calc(var(--lean) * 0.35deg));
+  }
+}
+
+@keyframes canary-flap {
+  0%,
+  100% {
+    transform: rotate(calc(var(--flap) * -1deg));
+  }
+  50% {
+    transform: rotate(calc(var(--flap) * 1deg));
+  }
+}
+
+@keyframes canary-nod {
+  0%,
+  100% {
+    transform: rotate(calc(var(--nod) * -1deg)) translateY(0);
+  }
+  50% {
+    transform: rotate(calc(var(--nod) * 1deg)) translateY(calc(var(--bob) * -0.3px));
+  }
+}
+
+@keyframes canary-tail {
+  0%,
+  100% {
+    transform: rotate(-4deg);
+  }
+  50% {
+    transform: rotate(6deg);
+  }
+}
+
+@keyframes canary-crest {
+  0%,
+  100% {
+    transform: rotate(-8deg);
+  }
+  50% {
+    transform: rotate(10deg);
+  }
+}
+
+@keyframes canary-blink {
+  0%,
+  92%,
+  100% {
+    transform: scaleY(1);
+  }
+  95% {
+    transform: scaleY(0.06);
+  }
+}
+
+@keyframes canary-jitter {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  20% {
+    transform: translate(calc(var(--chaos) * 0.9px), calc(var(--chaos) * -0.6px));
+  }
+  45% {
+    transform: translate(calc(var(--chaos) * -0.8px), calc(var(--chaos) * 0.5px));
+  }
+  70% {
+    transform: translate(calc(var(--chaos) * 0.5px), calc(var(--chaos) * 0.8px));
+  }
+}
+
+@keyframes canary-aura {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.94);
+  }
+  50% {
+    opacity: 0.75;
+    transform: scale(1.06);
+  }
+}
+
+@keyframes canary-float-up {
+  0% {
+    opacity: 0;
+    transform: translate(0, 6px) scale(0.7) rotate(0deg);
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--drift, 10px), -46px) scale(1.15) rotate(var(--spin, 18deg));
+  }
+}
+
+@keyframes canary-perch-flex {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(calc(var(--bob) * 0.35px));
+  }
+}
+
+.canary-bob {
+  animation: canary-bob var(--tempo) ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
+.canary-jitter {
+  animation: canary-jitter calc(var(--tempo) * 0.45) steps(4, end) infinite;
+  transform-box: fill-box;
+}
+.canary-wing {
+  animation: canary-flap var(--wing-tempo) ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: 82% 22%;
+}
+.canary-head {
+  animation: canary-nod calc(var(--tempo) * 1.35) ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: 45% 92%;
+}
+/* Pivots at the body end of the fan, not the feather tips. */
+.canary-tail {
+  animation: canary-tail calc(var(--tempo) * 1.6) ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: 96% 28%;
+}
+.canary-crest {
+  animation: canary-crest calc(var(--tempo) * 0.8) ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
+.canary-eyelid {
+  animation: canary-blink calc(var(--tempo) * 3.2) ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+}
+.canary-aura {
+  animation: canary-aura calc(var(--tempo) * 2) ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+}
+.canary-perch {
+  animation: canary-perch-flex var(--tempo) ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+}
+.canary-mote {
+  animation: canary-float-up var(--mote-tempo, 2.6s) ease-out infinite;
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .canary-bob,
+  .canary-jitter,
+  .canary-wing,
+  .canary-head,
+  .canary-tail,
+  .canary-crest,
+  .canary-eyelid,
+  .canary-aura,
+  .canary-perch,
+  .canary-mote,
+  .hns-rise {
+    animation: none !important;
+  }
+}
