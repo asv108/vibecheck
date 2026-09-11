@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import type { MoteKind, VibeResult } from "@/lib/vibe";
+import { MOTE_SLOTS, PATHS, VIEWBOX, browPath, moteGlyph } from "@/lib/canaryArt";
 
 type CanaryStyle = CSSProperties & {
   "--tempo": string;
@@ -17,81 +18,33 @@ type MoteStyle = CSSProperties & {
   "--spin": string;
 };
 
-const MOTE_SLOTS = [
-  { x: 96, y: 130, drift: -18, spin: -22, delay: 0 },
-  { x: 244, y: 108, drift: 16, spin: 20, delay: 0.45 },
-  { x: 72, y: 196, drift: -12, spin: 14, delay: 0.9 },
-  { x: 258, y: 176, drift: 14, spin: -16, delay: 1.35 },
-  { x: 160, y: 84, drift: 6, spin: 10, delay: 1.8 },
-];
-
 function Mote({ kind, color, index }: { kind: MoteKind; color: string; index: number }) {
   const slot = MOTE_SLOTS[index % MOTE_SLOTS.length];
+  const glyph = moteGlyph(kind, slot, index);
   const style: MoteStyle = {
     "--drift": `${slot.drift}px`,
     "--spin": `${slot.spin}deg`,
     animationDelay: `${slot.delay}s`,
   };
 
-  const glyph = () => {
-    switch (kind) {
-      case "notes":
-        return (
-          <text
-            x={slot.x}
-            y={slot.y}
-            fill={color}
-            fontSize={26}
-            fontFamily="var(--font-sans), sans-serif"
-          >
-            {index % 2 === 0 ? "♪" : "♫"}
-          </text>
-        );
-      case "zzz":
-        return (
-          <text
-            x={slot.x}
-            y={slot.y}
-            fill={color}
-            fontSize={22}
-            fontWeight={700}
-            fontFamily="var(--font-mono), monospace"
-          >
-            z
-          </text>
-        );
-      case "static":
-        return (
-          <path
-            d={`M${slot.x} ${slot.y} l6 -7 l3 12 l6 -9`}
-            stroke={color}
-            strokeWidth={2.5}
-            strokeLinecap="round"
-            fill="none"
-          />
-        );
-      case "embers":
-        return (
-          <path
-            d={`M${slot.x} ${slot.y} c5 -6 6 -11 2 -16 c9 4 12 12 7 18 c-3 4 -9 3 -9 -2z`}
-            fill={color}
-            opacity={0.9}
-          />
-        );
-      case "sparks":
-      default:
-        return (
-          <path
-            d={`M${slot.x} ${slot.y - 9} l2.6 6.4 l6.4 2.6 l-6.4 2.6 l-2.6 6.4 l-2.6 -6.4 l-6.4 -2.6 l6.4 -2.6z`}
-            fill={color}
-          />
-        );
-    }
-  };
-
   return (
     <g className="canary-mote" style={style} opacity={0.85}>
-      {glyph()}
+      {glyph.kind === "text" ? (
+        <text
+          x={slot.x}
+          y={slot.y}
+          fill={color}
+          fontSize={glyph.size}
+          fontWeight={glyph.mono ? 700 : undefined}
+          fontFamily={glyph.mono ? "var(--font-mono), monospace" : "var(--font-sans), sans-serif"}
+        >
+          {glyph.char}
+        </text>
+      ) : glyph.stroke ? (
+        <path d={glyph.d} stroke={color} strokeWidth={2.5} strokeLinecap="round" fill="none" />
+      ) : (
+        <path d={glyph.d} fill={color} />
+      )}
     </g>
   );
 }
@@ -119,7 +72,7 @@ export default function Canary({
 
   return (
     <svg
-      viewBox="0 0 320 320"
+      viewBox={VIEWBOX}
       className={className}
       style={rootStyle}
       role="img"
@@ -150,7 +103,7 @@ export default function Canary({
       <circle className="canary-aura" cx={160} cy={172} r={122} fill="url(#canary-aura-fill)" />
 
       {/* Emitted motes: notes when happy, static when fried, z's when asleep */}
-      {[0, 1, 2, 3, 4].map((i) => (
+      {MOTE_SLOTS.map((_, i) => (
         <Mote key={i} kind={persona.motes} color={accent} index={i} />
       ))}
 
@@ -166,20 +119,9 @@ export default function Canary({
         <g className="canary-bob">
           {/* Tail: three tapered feathers fanned out from the body */}
           <g className="canary-tail">
-            <path
-              d="M122 174 C98 168 70 169 48 179 C72 184 99 185 122 183 Z"
-              fill={plumage.body}
-              opacity={0.9}
-            />
-            <path
-              d="M122 182 C96 181 66 187 44 199 C70 202 100 197 122 191 Z"
-              fill={plumage.shade}
-            />
-            <path
-              d="M122 190 C100 194 76 205 58 220 C82 216 106 205 123 198 Z"
-              fill={plumage.shade}
-              opacity={0.82}
-            />
+            <path d={PATHS.tailTop} fill={plumage.body} opacity={0.9} />
+            <path d={PATHS.tailMid} fill={plumage.shade} />
+            <path d={PATHS.tailLow} fill={plumage.shade} opacity={0.82} />
           </g>
 
           {/* Body */}
@@ -188,22 +130,19 @@ export default function Canary({
 
           {/* Legs */}
           <g stroke={plumage.shade} strokeWidth={5} strokeLinecap="round" fill="none">
-            <path d="M147 232 L144 250" />
-            <path d="M172 232 L176 250" />
+            <path d={PATHS.legLeft} />
+            <path d={PATHS.legRight} />
           </g>
           <g stroke={plumage.shade} strokeWidth={3.5} strokeLinecap="round" fill="none">
-            <path d="M144 250 l-8 4 M144 250 l7 4" />
-            <path d="M176 250 l-7 4 M176 250 l8 4" />
+            <path d={PATHS.feetLeft} />
+            <path d={PATHS.feetRight} />
           </g>
 
           {/* Near wing */}
           <g className="canary-wing">
+            <path d={PATHS.wing} fill="url(#canary-wing-fill)" />
             <path
-              d="M178 156 c-22 4 -46 22 -56 48 c22 8 46 2 60 -16 c8 -11 6 -25 -4 -32z"
-              fill="url(#canary-wing-fill)"
-            />
-            <path
-              d="M168 172 c-16 6 -28 18 -34 32 M180 180 c-14 6 -24 16 -30 28"
+              d={PATHS.wingLines}
               stroke={plumage.crest}
               strokeWidth={2.5}
               strokeLinecap="round"
@@ -216,8 +155,8 @@ export default function Canary({
           <g className="canary-head">
             {/* Crest feathers */}
             <g className="canary-crest">
-              <path d="M188 104 c-4 -18 2 -30 12 -36 c-2 12 2 20 8 26z" fill={plumage.crest} />
-              <path d="M200 100 c2 -16 10 -25 20 -28 c-6 10 -6 20 -3 27z" fill={plumage.body} />
+              <path d={PATHS.crestBack} fill={plumage.crest} />
+              <path d={PATHS.crestFront} fill={plumage.body} />
             </g>
 
             <circle cx={198} cy={136} r={35} fill="url(#canary-body-fill)" />
@@ -225,11 +164,17 @@ export default function Canary({
             <ellipse cx={212} cy={152} rx={9} ry={6} fill={accent} opacity={0.3} />
 
             {/* Beak */}
-            <path d="M230 134 L256 141 L230 149 Z" fill="#f08a1d" />
-            <path d="M230 141 L256 141 L230 149 Z" fill="#c96a0c" />
+            <path d={PATHS.beakTop} fill="#f08a1d" />
+            <path d={PATHS.beakBottom} fill="#c96a0c" />
 
             {/* Eye */}
-            <g style={{ transform: `scaleY(${motion.eyeOpen})`, transformBox: "fill-box", transformOrigin: "50% 50%" }}>
+            <g
+              style={{
+                transform: `scaleY(${motion.eyeOpen})`,
+                transformBox: "fill-box",
+                transformOrigin: "50% 50%",
+              }}
+            >
               <g className="canary-eyelid">
                 <ellipse cx={214} cy={128} rx={8.5} ry={9.5} fill="#12151f" />
                 <circle cx={217} cy={124.5} r={3} fill="#ffffff" opacity={0.9} />
@@ -238,7 +183,7 @@ export default function Canary({
             </g>
             {/* Brow: angles down when the vibe is rough */}
             <path
-              d={`M204 ${115 - Math.round(motion.eyeOpen * 3)} L226 ${112 + Math.round((1 - motion.eyeOpen) * 9)}`}
+              d={browPath(motion.eyeOpen)}
               stroke={plumage.shade}
               strokeWidth={3}
               strokeLinecap="round"

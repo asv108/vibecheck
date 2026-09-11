@@ -1,27 +1,20 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Canary from "@/components/Canary";
-import VibeMeters from "@/components/VibeMeters";
-import ScoreDial from "@/components/ScoreDial";
-import { QUESTIONS, buildResult, type Answer } from "@/lib/vibe";
+import ResultCard from "@/components/ResultCard";
+import { encodeShareCode } from "@/lib/share";
+import { QUESTIONS, buildResult } from "@/lib/vibe";
 
 const INTRO = -1;
 const RESULT = QUESTIONS.length;
 
-const VERDICT_TONE = {
-  pass: "border-cyan/40 bg-cyan/10 text-cyan",
-  watch: "border-violet/40 bg-violet/10 text-violet",
-  fail: "border-pink/40 bg-pink/10 text-pink",
-} as const;
-
-export default function VibeQuiz() {
+export default function VibeQuiz({ origin }: { origin: string }) {
   const [step, setStep] = useState(INTRO);
-  const [answers, setAnswers] = useState<Array<Answer | undefined>>(
+  /** Answer indexes rather than answers, so a share code falls straight out. */
+  const [picks, setPicks] = useState<Array<number | undefined>>(
     () => Array(QUESTIONS.length).fill(undefined),
   );
-  const [pending, setPending] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
+  const [pending, setPending] = useState<number | null>(null);
   const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => () => {
@@ -31,12 +24,12 @@ export default function VibeQuiz() {
   const question = step >= 0 && step < QUESTIONS.length ? QUESTIONS[step] : null;
 
   const choose = useCallback(
-    (answer: Answer) => {
+    (index: number) => {
       if (advanceTimer.current) return;
-      setPending(answer.id);
-      setAnswers((prev) => {
+      setPending(index);
+      setPicks((prev) => {
         const next = [...prev];
-        next[step] = answer;
+        next[step] = index;
         return next;
       });
       advanceTimer.current = setTimeout(() => {
@@ -64,38 +57,21 @@ export default function VibeQuiz() {
       }
       const n = Number(e.key);
       if (Number.isInteger(n) && n >= 1 && n <= question.answers.length) {
-        choose(question.answers[n - 1]);
+        choose(n - 1);
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [question, choose, back]);
 
-  const result = useMemo(
-    () => (step === RESULT ? buildResult(answers) : null),
-    [step, answers],
-  );
+  const result = useMemo(() => {
+    if (step !== RESULT) return null;
+    return buildResult(picks.map((i, qi) => (i === undefined ? undefined : QUESTIONS[qi].answers[i])));
+  }, [step, picks]);
 
   const restart = () => {
-    setAnswers(Array(QUESTIONS.length).fill(undefined));
-    setCopied(false);
+    setPicks(Array(QUESTIONS.length).fill(undefined));
     setStep(INTRO);
-  };
-
-  const copyResult = async () => {
-    if (!result) return;
-    const { persona, score, scores } = result;
-    const summary =
-      `vibe check → ${persona.name} (${score}/100)\n` +
-      `${persona.verdict}\n` +
-      `energy ${scores.energy} · mood ${scores.mood} · focus ${scores.focus} · chaos ${scores.chaos}`;
-    try {
-      await navigator.clipboard.writeText(summary);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      setCopied(false);
-    }
   };
 
   /* ------------------------------------------------------------------ intro */
@@ -148,11 +124,11 @@ export default function VibeQuiz() {
 
           <div className="mt-7 grid gap-3">
             {question.answers.map((answer, i) => {
-              const active = pending === answer.id || answers[step]?.id === answer.id;
+              const active = pending === i || picks[step] === i;
               return (
                 <button
                   key={answer.id}
-                  onClick={() => choose(answer)}
+                  onClick={() => choose(i)}
                   aria-pressed={active}
                   className={`group flex items-center gap-4 rounded-xl border p-4 text-left transition focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan ${
                     active
@@ -191,68 +167,12 @@ export default function VibeQuiz() {
 
   /* ---------------------------------------------------------------- result */
   if (!result) return null;
-  const { persona, score, scores } = result;
-
   return (
-    <div className="mx-auto max-w-5xl">
-      <div className="hns-card grid overflow-hidden rounded-2xl lg:grid-cols-[1.05fr_1fr]">
-        {/* Canary stage */}
-        <div className="relative flex min-h-[420px] items-center justify-center border-b border-line p-6 lg:border-b-0 lg:border-r">
-          <div
-            className="pointer-events-none absolute inset-0 opacity-70"
-            style={{
-              background: `radial-gradient(ellipse 60% 55% at 50% 45%, ${persona.accent}22, transparent 70%)`,
-            }}
-          />
-          <Canary result={result} className="hns-rise relative w-full max-w-[380px]" />
-        </div>
-
-        {/* Report */}
-        <div className="p-7 sm:p-9">
-          <div className="flex items-start justify-between gap-6">
-            <div>
-              <p className="font-mono text-xs uppercase tracking-[0.18em] text-muted">
-                Your canary
-              </p>
-              <h2 className="hns-rise mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
-                {persona.name}
-              </h2>
-              <p className="mt-1.5 text-sm text-muted">{persona.tagline}</p>
-            </div>
-            <ScoreDial score={score} accent={persona.accent} />
-          </div>
-
-          <span
-            className={`mt-6 inline-flex items-center gap-2 rounded-full border px-3 py-1 font-mono text-[11px] uppercase tracking-[0.14em] ${
-              VERDICT_TONE[persona.verdictTone]
-            }`}
-          >
-            <span className="size-1.5 rounded-full bg-current" />
-            {persona.verdict}
-          </span>
-
-          <p className="mt-5 text-[15px] leading-relaxed text-muted">{persona.description}</p>
-
-          <div className="mt-7">
-            <VibeMeters scores={scores} />
-          </div>
-
-          <div className="mt-8 flex flex-wrap gap-3">
-            <button
-              onClick={restart}
-              className="rounded-full bg-gradient-to-r from-blue to-cyan px-6 py-2.5 text-sm font-semibold text-[#04121c] transition hover:brightness-110"
-            >
-              Run it again
-            </button>
-            <button
-              onClick={copyResult}
-              className="rounded-full border border-line bg-white/5 px-6 py-2.5 text-sm font-medium transition hover:border-white/25 hover:bg-white/10"
-            >
-              {copied ? "Copied ✓" : "Copy result"}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+    <ResultCard
+      result={result}
+      code={encodeShareCode(picks)}
+      origin={origin}
+      onRestart={restart}
+    />
   );
 }
